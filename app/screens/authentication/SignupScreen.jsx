@@ -11,10 +11,11 @@ import {
   StatusBar,
   ScrollView,
 } from 'react-native';
+import { supabase } from '../../../supabase'; // Adjust import path as needed
 
 const { width, height } = Dimensions.get('window');
 
-const SignupScreen = ({ onBack, onSignup, onNavigateToProfile }) => {
+const SignupScreen = ({ onBack, onSignup, onNavigateToProfile, navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -110,20 +111,75 @@ const SignupScreen = ({ onBack, onSignup, onNavigateToProfile }) => {
 
     setIsLoading(true);
     
+    // Button press animation
+    Animated.sequence([
+      Animated.timing(scaleAnim, { toValue: 0.95, duration: 100, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
+    ]).start();
+    
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      const userData = {
-        email,
-        signupMethod: 'email',
-        timestamp: Date.now()
-      };
-      
-      if (onNavigateToProfile) {
-        onNavigateToProfile(userData);
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password: password,
+        options: {
+          emailRedirectTo: undefined, // You can set this if you have email confirmation setup
+        }
+      });
+
+      if (error) {
+        // Handle specific Supabase auth errors
+        let errorMessage = 'Something went wrong. Let\'s try that again!';
+        
+        if (error.message.includes('User already registered')) {
+          errorMessage = 'This email is already registered. Try signing in instead!';
+        } else if (error.message.includes('Invalid email')) {
+          errorMessage = 'Please enter a valid email address!';
+        } else if (error.message.includes('Password should be at least')) {
+          errorMessage = 'Password should be at least 6 characters long!';
+        } else if (error.message.includes('Email rate limit exceeded')) {
+          errorMessage = 'Too many requests. Please wait a moment and try again!';
+        }
+        
+        Alert.alert('Signup Failed ☕️', errorMessage);
+        return;
+      }
+
+      if (data.user) {
+        // Check if email confirmation is required
+        if (data.user && !data.session) {
+          Alert.alert(
+            'Almost There! 📧', 
+            'Please check your email and click the confirmation link to complete your registration!',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  if (onBack) {
+                    onBack(); // Navigate back to login screen
+                  }
+                }
+              }
+            ]
+          );
+        } else {
+          // User is signed up and logged in immediately
+          const userData = {
+            email: data.user.email,
+            userId: data.user.id,
+            signupMethod: 'email',
+            timestamp: Date.now()
+          };
+          
+          if (onNavigateToProfile) {
+            onNavigateToProfile(userData);
+          } else if (onSignup) {
+            onSignup(data.session?.access_token, data.user);
+          }
+        }
       }
     } catch (error) {
       console.error('Signup error:', error);
-      Alert.alert('Oops! ☕️', 'Something went wrong. Let\'s try that again!');
+      Alert.alert('Oops! ☕️', 'Network error. Please check your connection and try again!');
     } finally {
       setIsLoading(false);
     }
@@ -138,20 +194,31 @@ const SignupScreen = ({ onBack, onSignup, onNavigateToProfile }) => {
     setIsLoading(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      
-      const userData = {
-        email: `user@${provider}.com`,
-        signupMethod: provider,
-        timestamp: Date.now()
-      };
-      
-      if (onNavigateToProfile) {
-        onNavigateToProfile(userData);
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: provider.toLowerCase(),
+        options: {
+          redirectTo: undefined, // You can set this for web redirects
+        }
+      });
+
+      if (error) {
+        let errorMessage = `${provider} login failed. Please try again!`;
+        
+        if (error.message.includes('OAuth')) {
+          errorMessage = `${provider} authentication is not available right now. Please try email signup!`;
+        }
+        
+        Alert.alert('Social Login Failed ☕️', errorMessage);
+        return;
       }
+
+      // Note: For mobile OAuth, you'll need to handle the redirect/deep link
+      // This is a placeholder for the OAuth flow completion
+      Alert.alert('OAuth Notice ☕️', `${provider} login will open in your browser. Please complete the login there!`);
+      
     } catch (error) {
       console.error(`${provider} login error:`, error);
-      Alert.alert('Oops! ☕️', `${provider} login failed. Please try again!`);
+      Alert.alert('Oops! ☕️', `${provider} login failed. Please try email signup instead!`);
     } finally {
       setIsLoading(false);
     }
@@ -285,6 +352,7 @@ const SignupScreen = ({ onBack, onSignup, onNavigateToProfile }) => {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
+                  editable={!isLoading}
                 />
               </View>
             </View>
@@ -300,6 +368,7 @@ const SignupScreen = ({ onBack, onSignup, onNavigateToProfile }) => {
                   onChangeText={setPassword}
                   secureTextEntry
                   autoCapitalize="none"
+                  editable={!isLoading}
                 />
               </View>
             </View>
@@ -315,6 +384,7 @@ const SignupScreen = ({ onBack, onSignup, onNavigateToProfile }) => {
                   onChangeText={setConfirmPassword}
                   secureTextEntry
                   autoCapitalize="none"
+                  editable={!isLoading}
                 />
               </View>
             </View>

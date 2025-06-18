@@ -11,7 +11,7 @@ import HamburgerMenu from '../../components/hamburger/HamburgerMenu';
 import SearchBar from '../../components/common/SearchBar';
 import Drawer from '../../components/hamburger/Drawer';
 
-const HomeScreen = ({ onRestart }) => {
+const HomeScreen = ({ navigation, onRestart }) => {
   const [alertVisible, setAlertVisible] = useState(false);
 
   const handleRestart = async () => {
@@ -37,7 +37,7 @@ const HomeScreen = ({ onRestart }) => {
         </View>
         <View style={styles.searchWrapper}>
           <SearchBar />
-          <Drawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
+          <Drawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} navigation={navigation} />
         </View>
       </View>
 

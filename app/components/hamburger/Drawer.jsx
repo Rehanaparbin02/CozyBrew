@@ -36,7 +36,7 @@ const MenuItem = ({ icon, title, isLogout = false, onPress }) => {
       Animated.timing(glowAnim, {
         toValue: 1,
         duration: 150,
-        useNativeDriver: false,
+        useNativeDriver: true,
       })
     ]).start();
   };
@@ -50,7 +50,7 @@ const MenuItem = ({ icon, title, isLogout = false, onPress }) => {
       Animated.timing(glowAnim, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: false,
+        useNativeDriver: true,
       })
     ]).start();
   };
@@ -60,6 +60,7 @@ const MenuItem = ({ icon, title, isLogout = false, onPress }) => {
     outputRange: ['rgba(248, 244, 240, 0.05)', 'rgba(248, 244, 240, 0.15)']
   });
 
+ 
   return (
     <TouchableOpacity
       onPressIn={handlePressIn}
@@ -87,11 +88,20 @@ const MenuItem = ({ icon, title, isLogout = false, onPress }) => {
   );
 };
 
-const Drawer = ({ visible, onClose }) => {
+const Drawer = ({ visible, onClose, navigation }) => {
   const translateX = React.useRef(new Animated.Value(width * 0.56)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
   const [shouldRender, setShouldRender] = React.useState(visible);
+
+ const handleLogOut = () => {
+  onClose(); // Close the drawer first
+  navigation.reset({
+    index: 0,
+    routes: [{ name: 'AuthScreen' }],
+  });
+};
+
 
   React.useEffect(() => {
     if (visible) {
@@ -207,7 +217,7 @@ const Drawer = ({ visible, onClose }) => {
             icon="logout"
             title="Logout"
             isLogout={true}
-            onPress={() => console.log('Logout pressed')}
+            onPress={handleLogOut}
           />
         </View>
       </Animated.View>

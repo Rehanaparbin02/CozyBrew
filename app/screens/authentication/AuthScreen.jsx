@@ -10,10 +10,11 @@ import {
   Dimensions,
   StatusBar,
 } from 'react-native';
+import { supabase } from '../../../supabase'; // Adjust import path as needed
 
 const { width, height } = Dimensions.get('window');
 
-const AuthScreen = ({ onLogin, onBack, onNavigateToSignup }) => {
+const AuthScreen = ({ onLogin, onBack, onNavigateToSignup, navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -119,13 +120,36 @@ const AuthScreen = ({ onLogin, onBack, onNavigateToSignup }) => {
     ]).start();
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      if (onLogin) {
-        await onLogin(`token_${email}_${Date.now()}`);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password: password,
+      });
+
+      if (error) {
+        // Handle specific Supabase auth errors
+        let errorMessage = 'Something went wrong. Let\'s try that again!';
+        
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please check your credentials!';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please check your email and confirm your account first!';
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'Too many login attempts. Please wait a moment and try again!';
+        }
+        
+        Alert.alert('Login Failed ☕️', errorMessage);
+        return;
+      }
+
+      if (data.user && data.session) {
+        // Successfully logged in
+        if (onLogin) {
+          await onLogin(data.session.access_token, data.user);
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
-      Alert.alert('Oops! ☕️', 'Something went wrong. Let\'s try that again!');
+      Alert.alert('Oops! ☕️', 'Network error. Please check your connection and try again!');
     } finally {
       setIsLoading(false);
     }
@@ -135,13 +159,33 @@ const AuthScreen = ({ onLogin, onBack, onNavigateToSignup }) => {
     setIsLoading(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      if (onLogin) {
-        await onLogin('guest_token');
+      // For guest login, you might want to use anonymous auth or a demo user
+      // Option 1: Anonymous auth (if enabled in Supabase)
+      const { data, error } = await supabase.auth.signInAnonymously();
+
+      if (error) {
+        // Fallback to a demo guest account
+        const { data: guestData, error: guestError } = await supabase.auth.signInWithPassword({
+          email: 'guest@coffeebrew.com',
+          password: 'guest123',
+        });
+
+        if (guestError) {
+          Alert.alert('Guest Login Failed ☕️', 'Unable to sign in as guest. Please try creating an account!');
+          return;
+        }
+
+        if (onLogin) {
+          await onLogin(guestData.session.access_token, guestData.user);
+        }
+      } else {
+        if (onLogin) {
+          await onLogin(data.session.access_token, data.user);
+        }
       }
     } catch (error) {
       console.error('Guest login error:', error);
-      Alert.alert('Oops! ☕️', 'Something went wrong. Let\'s try that again!');
+      Alert.alert('Oops! ☕️', 'Network error. Please check your connection and try again!');
     } finally {
       setIsLoading(false);
     }
@@ -235,6 +279,7 @@ const AuthScreen = ({ onLogin, onBack, onNavigateToSignup }) => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                editable={!isLoading}
               />
             </View>
           </View>
@@ -250,6 +295,7 @@ const AuthScreen = ({ onLogin, onBack, onNavigateToSignup }) => {
                 onChangeText={setPassword}
                 secureTextEntry
                 autoCapitalize="none"
+                editable={!isLoading}
               />
             </View>
           </View>
@@ -309,7 +355,7 @@ const styles = StyleSheet.create({
   },
   backButtonContainer: {
     position: 'absolute',
-    top: 50,
+    top: 20,
     left: 20,
     zIndex: 10,
   },

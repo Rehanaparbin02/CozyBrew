@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import Slides from './Slides';
 import OnboardingItem from './OnboardingItems';
-import NextButton from './NextButton';
+import NextButton from '../../components/common/NextButton';
 import CozyAlert from '../../components/common/CozyAlert';
 
 const { width, height } = Dimensions.get('window');

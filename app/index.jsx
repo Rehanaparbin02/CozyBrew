@@ -226,10 +226,11 @@ const App = () => {
               options={{
                 animation: 'slide_from_right',
               }}
-            >
+>
               {(props) => (
                 <SignupScreen
                   {...props}
+                  navigation={props.navigation}
                   onBack={handleBackFromSignup}
                   onSignup={handleSignup}
                   onNavigateToProfile={handleSignup} // For social logins that go directly to profile
@@ -242,10 +243,11 @@ const App = () => {
               options={{
                 animation: 'fade',
               }}
-            >
+>
               {(props) => (
                 <AuthScreen
                   {...props}
+                  navigation={props.navigation}
                   onLogin={handleLogin}
                   onNavigateToSignup={handleNavigateToSignup}
                   onBack={handleBackToOnboarding}
