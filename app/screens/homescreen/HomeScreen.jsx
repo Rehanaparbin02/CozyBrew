@@ -39,6 +39,7 @@ const HomeScreen = ({ navigation, onRestart }) => {
           <SearchBar />
           <Drawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} navigation={navigation} />
         </View>
+        <Text>whareverrrrrrrrr</Text>
       </View>
 
             
